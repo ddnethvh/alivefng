@@ -476,6 +476,7 @@ set(EXPECTED_DATA
   mapres/bg_cloud1.png
   mapres/grass_doodads.png
   mapres/generic_deathtiles.png
+  autoexec.cfg
 )
 
 set_glob(DATA GLOB_RECURSE "png;map" data ${EXPECTED_DATA})
