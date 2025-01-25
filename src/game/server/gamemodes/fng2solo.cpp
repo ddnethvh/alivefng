@@ -10,7 +10,7 @@
 CGameControllerFNG2Solo::CGameControllerFNG2Solo(class CGameContext *pGameServer)
 : CGameControllerFNG2((class CGameContext*)pGameServer)
 {
-	m_pGameType = "DD.HVH";
+	m_pGameType = "DD.HvH";
 	m_GameFlags = 0;
 	
 	if(m_Config.m_SvTournamentMode) m_Warmup = 60*Server()->TickSpeed();
@@ -20,7 +20,7 @@ CGameControllerFNG2Solo::CGameControllerFNG2Solo(class CGameContext *pGameServer
 CGameControllerFNG2Solo::CGameControllerFNG2Solo(class CGameContext *pGameServer, CConfiguration& pConfig)
 : CGameControllerFNG2((class CGameContext*)pGameServer, pConfig)
 {
-	m_pGameType = "DD.HVH";
+	m_pGameType = "DD.HvH";
 	m_GameFlags = 0;
 	
 	if(m_Config.m_SvTournamentMode) m_Warmup = 60*Server()->TickSpeed();

@@ -10,7 +10,7 @@
 CGameControllerFNG2Boom::CGameControllerFNG2Boom(class CGameContext *pGameServer)
 : CGameControllerFNG2((class CGameContext*)pGameServer)
 {
-	m_pGameType = "DD.HVH";
+	m_pGameType = "DD.HvH";
 	m_GameFlags = GAMEFLAG_TEAMS;
 	
 	if(m_Config.m_SvTournamentMode) m_Warmup = 60*Server()->TickSpeed();
@@ -22,7 +22,7 @@ CGameControllerFNG2Boom::CGameControllerFNG2Boom(class CGameContext *pGameServer
 CGameControllerFNG2Boom::CGameControllerFNG2Boom(class CGameContext *pGameServer, CConfiguration& pConfig)
 : CGameControllerFNG2((class CGameContext*)pGameServer, pConfig)
 {
-	m_pGameType = "DD.HVH";
+	m_pGameType = "DD.HvH";
 	m_GameFlags = GAMEFLAG_TEAMS;
 	
 	if(m_Config.m_SvTournamentMode) m_Warmup = 60*Server()->TickSpeed();

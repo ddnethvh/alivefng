@@ -10,7 +10,7 @@
 CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 : IGameController((class CGameContext*)pGameServer)
 {
-	m_pGameType = "DD.HVH";
+	m_pGameType = "DD.HvH";
 	m_GameFlags = GAMEFLAG_TEAMS;
 	
 	m_Warmup = m_Config.m_SvWarmup;
@@ -19,7 +19,7 @@ CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer, CConfiguration& pConfig)
 : IGameController((class CGameContext*)pGameServer, pConfig)
 {
-	m_pGameType = "DD.HVH";
+	m_pGameType = "DD.HvH";
 	m_GameFlags = GAMEFLAG_TEAMS;
 	
 	m_Warmup = m_Config.m_SvWarmup;
