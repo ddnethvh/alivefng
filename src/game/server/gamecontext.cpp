@@ -470,6 +470,7 @@ void CGameContext::SendTuningParams(int ClientID)
 
 	// Update laser reach and bounce num from config
 	m_Tuning.m_LaserReach = m_Config->m_SvLaserReach;
+	m_Tuning.m_LaserBounceDelay = m_Config->m_SvLaserBounceDelay;
 	m_Tuning.m_LaserBounceNum = m_Config->m_SvLaserBounceNum;
 
 	CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
