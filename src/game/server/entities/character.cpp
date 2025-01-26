@@ -368,7 +368,7 @@ void CCharacter::FireWeapon()
 		case WEAPON_RIFLE:
 		{
 			++m_pPlayer->m_Stats.m_Shots;
-			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID());
+			new CLaser(GameWorld(), m_Pos, Direction, g_Config.m_SvLaserReach, m_pPlayer->GetCID());
 			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_FIRE);
 			//WeaponFireDelay = GameServer()->Tuning()->m_LaserFireDelay * Server()->TickSpeed() / 1000;
 		} break;
