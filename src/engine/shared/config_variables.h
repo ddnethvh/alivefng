@@ -118,6 +118,6 @@ MACRO_CONFIG_INT(SvConnlimitTime, sv_connlimit_time, 20, 0, 1000, CFGFLAG_SERVER
 #endif
 
 #pragma region hvh modd
-MACRO_CONFIG_INT(SvLaserBounceNum, sv_laser_bounce_num, 1, 0, 10, CFGFLAG_SERVER, "Number of bounces a laser can make")
 MACRO_CONFIG_INT(SvLaserReach, sv_laser_reach, 800, 0, 10000, CFGFLAG_SERVER, "Reach of the laser")
+MACRO_CONFIG_INT(SvLaserBounceNum, sv_laser_bounce_num, 1, 0, 10, CFGFLAG_SERVER, "Number of bounces a laser can make")
 #pragma endregion
