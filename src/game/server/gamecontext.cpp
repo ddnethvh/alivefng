@@ -472,6 +472,11 @@ void CGameContext::SendTuningParams(int ClientID)
 	int *pParams = (int *)&m_Tuning;
 	for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)
 		Msg.AddInt(pParams[i]);
+	
+	// Add configurable tuning parameters
+	Msg.AddInt(g_Config.m_SvLaserBounceNum);
+	Msg.AddInt(g_Config.m_SvLaserReach);
+	
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
