@@ -290,6 +290,9 @@ find_package(Git)
 find_package(GTest)
 find_package(Threads)
 
+# Add libcurl dependency
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(CMAKE_OTOOL otool)
@@ -725,7 +728,7 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS})
+set(LIBS_SERVER ${LIBS} CURL::libcurl)
 
 # Target
 set(TARGET_SERVER ${SERVER_EXECUTABLE})
