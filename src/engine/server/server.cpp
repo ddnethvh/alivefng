@@ -31,6 +31,7 @@
 #include "server.h"
 
 #include "curl/curl.h"
+#include <cstring>
 
 #if defined(CONF_FAMILY_WINDOWS)
 	#define WIN32_LEAN_AND_MEAN
