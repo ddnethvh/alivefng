@@ -1,8 +1,7 @@
 #include "connection.h"
 
 #include <sqlite3.h>
-
-#include <base/math.h>
+#include <base/system.h>
 #include <engine/console.h>
 
 #include <atomic>
@@ -15,15 +14,12 @@ public:
 	void Print(IConsole *pConsole, const char *pMode) override;
 
 	const char *BinaryCollate() const override { return "BINARY"; }
-	void ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize) override;
+	void ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize) override {}
 	const char *InsertTimestampAsUtc() const override { return "DATETIME(?, 'utc')"; }
 	const char *CollateNocase() const override { return "? COLLATE NOCASE"; }
 	const char *InsertIgnore() const override { return "INSERT OR IGNORE"; }
 	const char *Random() const override { return "RANDOM()"; }
-	const char *MedianMapTime(char *pBuffer, int BufferSize) const override;
-	// Since SQLite 3.23.0 true/false literals are recognized, but still cleaner to use 1/0, because:
-	// > For compatibility, if there exist columns named "true" or "false", then
-	// > the identifiers refer to the columns rather than Boolean constants.
+	const char *MedianMapTime(char *pBuffer, int BufferSize) const override { return ""; }
 	const char *False() const override { return "0"; }
 	const char *True() const override { return "1"; }
 
@@ -48,28 +44,19 @@ public:
 	int GetInt(int Col) override;
 	int64_t GetInt64(int Col) override;
 	void GetString(int Col, char *pBuffer, int BufferSize) override;
-	// passing a negative buffer size is undefined behavior
 	int GetBlob(int Col, unsigned char *pBuffer, int BufferSize) override;
 
 	bool AddPoints(const char *pPlayer, int Points, char *pError, int ErrorSize) override;
 
-	// fail safe
-	bool CreateFailsafeTables();
-
 private:
-	// copy of config vars
-	char m_aFilename[IO_MAX_PATH_LENGTH];
+	char m_aFilename[512];
 	bool m_Setup;
 
 	sqlite3 *m_pDb;
 	sqlite3_stmt *m_pStmt;
-	bool m_Done; // no more rows available for Step
-	// returns false, if the query succeeded
+	bool m_Done;
 	bool Execute(const char *pQuery, char *pError, int ErrorSize);
-	// returns true on failure
 	bool ConnectImpl(char *pError, int ErrorSize);
-
-	// returns true if an error was formatted
 	bool FormatError(int Result, char *pError, int ErrorSize);
 	void AssertNoError(int Result);
 
@@ -84,7 +71,7 @@ CSqliteConnection::CSqliteConnection(const char *pFilename, bool Setup) :
 	m_Done(true),
 	m_InUse(false)
 {
-	str_copy(m_aFilename, pFilename);
+	str_copy(m_aFilename, pFilename, sizeof(m_aFilename));
 }
 
 CSqliteConnection::~CSqliteConnection()
@@ -104,16 +91,12 @@ void CSqliteConnection::Print(IConsole *pConsole, const char *pMode)
 	pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 }
 
-void CSqliteConnection::ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize)
-{
-	str_format(aBuf, BufferSize, "strftime('%%s', %s)", pTimestamp);
-}
-
 bool CSqliteConnection::Connect(char *pError, int ErrorSize)
 {
 	if(m_InUse.exchange(true))
 	{
-		dbg_assert(false, "Tried connecting while the connection is in use");
+		str_copy(pError, "Database connection already in use", ErrorSize);
+		return true;
 	}
 	if(ConnectImpl(pError, ErrorSize))
 	{
@@ -126,14 +109,7 @@ bool CSqliteConnection::Connect(char *pError, int ErrorSize)
 bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 {
 	if(m_pDb != nullptr)
-	{
 		return false;
-	}
-
-	if(sqlite3_libversion_number() < 3025000)
-	{
-		dbg_msg("sql", "SQLite version %s is not supported, use at least version 3.25.0", sqlite3_libversion());
-	}
 
 	int Result = sqlite3_open(m_aFilename, &m_pDb);
 	if(Result != SQLITE_OK)
@@ -142,37 +118,12 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		return true;
 	}
 
-	// wait for database to unlock so we don't have to handle SQLITE_BUSY errors
 	sqlite3_busy_timeout(m_pDb, -1);
 
 	if(m_Setup)
 	{
-		if(Execute("PRAGMA journal_mode=WAL", pError, ErrorSize))
-			return true;
-		char aBuf[1024];
-		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ false);
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-		FormatCreateTeamrace(aBuf, sizeof(aBuf), "BLOB", /* Backup */ false);
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-		FormatCreateMaps(aBuf, sizeof(aBuf));
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-		FormatCreateSaves(aBuf, sizeof(aBuf), /* Backup */ false);
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-		FormatCreatePoints(aBuf, sizeof(aBuf));
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-
-		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ true);
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-		FormatCreateTeamrace(aBuf, sizeof(aBuf), "BLOB", /* Backup */ true);
-		if(Execute(aBuf, pError, ErrorSize))
-			return true;
-		FormatCreateSaves(aBuf, sizeof(aBuf), /* Backup */ true);
+		char aBuf[512];
+		FormatCreateRatings(aBuf, sizeof(aBuf));
 		if(Execute(aBuf, pError, ErrorSize))
 			return true;
 		m_Setup = false;
@@ -193,16 +144,9 @@ bool CSqliteConnection::PrepareStatement(const char *pStmt, char *pError, int Er
 	if(m_pStmt != nullptr)
 		sqlite3_finalize(m_pStmt);
 	m_pStmt = nullptr;
-	int Result = sqlite3_prepare_v2(
-		m_pDb,
-		pStmt,
-		-1, // pStmt can be any length
-		&m_pStmt,
-		NULL);
+	int Result = sqlite3_prepare_v2(m_pDb, pStmt, -1, &m_pStmt, NULL);
 	if(FormatError(Result, pError, ErrorSize))
-	{
 		return true;
-	}
 	m_Done = false;
 	return false;
 }
@@ -249,25 +193,7 @@ void CSqliteConnection::BindNull(int Idx)
 	m_Done = false;
 }
 
-// Keep support for SQLite < 3.14 on older Linux distributions. MinGW does not
-// support __attribute__((weak)): https://sourceware.org/bugzilla/show_bug.cgi?id=9687
-#if defined(__GNUC__) && !defined(__MINGW32__)
-extern char *sqlite3_expanded_sql(sqlite3_stmt *pStmt) __attribute__((weak)); // NOLINT(readability-redundant-declaration)
-#endif
-
-void CSqliteConnection::Print()
-{
-	if(m_pStmt != nullptr
-#if defined(__GNUC__) && !defined(__MINGW32__)
-		&& sqlite3_expanded_sql != nullptr
-#endif
-	)
-	{
-		char *pExpandedStmt = sqlite3_expanded_sql(m_pStmt);
-		dbg_msg("sql", "SQLite statement: %s", pExpandedStmt);
-		sqlite3_free(pExpandedStmt);
-	}
-}
+void CSqliteConnection::Print() {}
 
 bool CSqliteConnection::Step(bool *pEnd, char *pError, int ErrorSize)
 {
@@ -291,9 +217,7 @@ bool CSqliteConnection::Step(bool *pEnd, char *pError, int ErrorSize)
 	else
 	{
 		if(FormatError(Result, pError, ErrorSize))
-		{
 			return true;
-		}
 	}
 	*pEnd = true;
 	return false;
@@ -303,9 +227,7 @@ bool CSqliteConnection::ExecuteUpdate(int *pNumUpdated, char *pError, int ErrorS
 {
 	bool End;
 	if(Step(&End, pError, ErrorSize))
-	{
 		return true;
-	}
 	*pNumUpdated = sqlite3_changes(m_pDb);
 	return false;
 }
@@ -338,26 +260,9 @@ void CSqliteConnection::GetString(int Col, char *pBuffer, int BufferSize)
 int CSqliteConnection::GetBlob(int Col, unsigned char *pBuffer, int BufferSize)
 {
 	int Size = sqlite3_column_bytes(m_pStmt, Col - 1);
-	Size = minimum(Size, BufferSize);
+	Size = min(Size, BufferSize);
 	mem_copy(pBuffer, sqlite3_column_blob(m_pStmt, Col - 1), Size);
 	return Size;
-}
-
-const char *CSqliteConnection::MedianMapTime(char *pBuffer, int BufferSize) const
-{
-	str_format(pBuffer, BufferSize,
-		"SELECT AVG("
-		"  CASE counter %% 2 "
-		"    WHEN 0 THEN CASE WHEN rn IN (counter / 2, counter / 2 + 1) THEN Time END "
-		"    WHEN 1 THEN CASE WHEN rn = counter / 2 + 1 THEN Time END END) "
-		"  OVER (PARTITION BY Map) AS Median "
-		"FROM ("
-		"  SELECT *, ROW_NUMBER() "
-		"  OVER (PARTITION BY Map ORDER BY Time) rn, COUNT(*) "
-		"  OVER (PARTITION BY Map) counter "
-		"  FROM %s_race where Map = l.Map) as r",
-		GetPrefix());
-	return pBuffer;
 }
 
 bool CSqliteConnection::Execute(const char *pQuery, char *pError, int ErrorSize)
@@ -402,9 +307,7 @@ bool CSqliteConnection::AddPoints(const char *pPlayer, int Points, char *pError,
 		"ON CONFLICT(Name) DO UPDATE SET Points=Points+?",
 		GetPrefix());
 	if(PrepareStatement(aBuf, pError, ErrorSize))
-	{
 		return true;
-	}
 	BindString(1, pPlayer);
 	BindInt(2, Points);
 	BindInt(3, Points);
