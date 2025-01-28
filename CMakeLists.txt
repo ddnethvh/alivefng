@@ -691,6 +691,14 @@ set_src(ENGINE_SERVER GLOB src/engine/server
   server.cpp
   server.h
 )
+set_src(ENGINE_DATABASE GLOB src/engine/server/databases
+  connection.cpp
+  connection.h
+  connection_pool.cpp
+  connection_pool.h
+  mysql.cpp
+  sqlite.cpp
+)
 set_src(GAME_SERVER GLOB_RECURSE src/game/server
   entities/character.cpp
   entities/character.h
