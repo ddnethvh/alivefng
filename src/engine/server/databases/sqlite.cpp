@@ -21,10 +21,12 @@ public:
 
 	~CSqliteConnection() override
 	{
-		if(m_pStmt)
-			sqlite3_finalize(m_pStmt);
+		Disconnect(); // Make sure statement is finalized
 		if(m_pDb)
+		{
 			sqlite3_close(m_pDb);
+			m_pDb = nullptr;
+		}
 	}
 
 	bool Connect(char *pError, int ErrorSize) override
@@ -67,13 +69,13 @@ public:
 			sqlite3_finalize(m_pStmt);
 			m_pStmt = nullptr;
 		}
+		m_Done = true;
 	}
 
 	bool PrepareStatement(const char *pStmt, char *pError, int ErrorSize) override
 	{
-		if(m_pStmt)
-			sqlite3_finalize(m_pStmt);
-		m_pStmt = nullptr;
+		// Always finalize previous statement before preparing new one
+		Disconnect();
 
 		int Result = sqlite3_prepare_v2(m_pDb, pStmt, -1, &m_pStmt, nullptr);
 		if(Result != SQLITE_OK)
@@ -87,19 +89,21 @@ public:
 
 	void BindString(int Idx, const char *pString) override
 	{
-		sqlite3_bind_text(m_pStmt, Idx, pString, -1, nullptr);
+		if(m_pStmt)
+			sqlite3_bind_text(m_pStmt, Idx, pString, -1, SQLITE_STATIC);
 		m_Done = false;
 	}
 
 	void BindInt(int Idx, int Value) override
 	{
-		sqlite3_bind_int(m_pStmt, Idx, Value);
+		if(m_pStmt)
+			sqlite3_bind_int(m_pStmt, Idx, Value);
 		m_Done = false;
 	}
 
 	bool Step(bool *pEnd, char *pError, int ErrorSize) override
 	{
-		if(m_Done)
+		if(!m_pStmt || m_Done)
 		{
 			*pEnd = true;
 			return false;
@@ -134,17 +138,20 @@ public:
 
 	bool IsNull(int Col) override
 	{
-		return sqlite3_column_type(m_pStmt, Col - 1) == SQLITE_NULL;
+		return !m_pStmt || sqlite3_column_type(m_pStmt, Col - 1) == SQLITE_NULL;
 	}
 
 	int GetInt(int Col) override
 	{
-		return sqlite3_column_int(m_pStmt, Col - 1);
+		return m_pStmt ? sqlite3_column_int(m_pStmt, Col - 1) : 0;
 	}
 
 	void GetString(int Col, char *pBuffer, int BufferSize) override
 	{
-		str_copy(pBuffer, (const char *)sqlite3_column_text(m_pStmt, Col - 1), BufferSize);
+		if(m_pStmt)
+			str_copy(pBuffer, (const char *)sqlite3_column_text(m_pStmt, Col - 1), BufferSize);
+		else
+			pBuffer[0] = '\0';
 	}
 
 	bool AddPoints(const char *pPlayer, int Points, char *pError, int ErrorSize) override
@@ -160,13 +167,15 @@ public:
 		BindInt(2, Points);
 		BindInt(3, Points);
 		bool End;
-		return Step(&End, pError, ErrorSize);
+		bool Result = Step(&End, pError, ErrorSize);
+		Disconnect(); // Clean up statement after use
+		return Result;
 	}
 
 private:
 	bool Execute(const char *pQuery, char *pError, int ErrorSize)
 	{
-		char *pErrorMsg;
+		char *pErrorMsg = nullptr;
 		int Result = sqlite3_exec(m_pDb, pQuery, nullptr, nullptr, &pErrorMsg);
 		if(Result != SQLITE_OK)
 		{
