@@ -48,6 +48,8 @@ public:
 	void Update();
 	void Send(int ClientID, const char *pLine);
 	void Shutdown();
+
+	bool IsProxy(const NETADDR *pAddr);
 };
 
 #endif

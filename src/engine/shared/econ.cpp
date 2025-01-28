@@ -4,6 +4,7 @@
 #include "econ.h"
 #include "netban.h"
 
+#include <curl/curl.h>
 
 int CEcon::NewClientCallback(int ClientID, void *pUser)
 {
@@ -11,6 +12,24 @@ int CEcon::NewClientCallback(int ClientID, void *pUser)
 
 	char aAddrStr[NETADDR_MAXSTRSIZE];
 	net_addr_str(pThis->m_NetConsole.ClientAddr(ClientID), aAddrStr, sizeof(aAddrStr), true);
+	
+	// Check if connection is from a proxy
+	if(g_Config.m_SvProxyCheck)
+	{
+		const NETADDR *pAddr = pThis->m_NetConsole.ClientAddr(ClientID);
+		
+		if(pAddr)
+		{
+			if(pThis->IsProxy(pAddr))
+			{
+				char aBuf[128];
+				str_format(aBuf, sizeof(aBuf), "Proxy connections are not allowed");
+				pThis->m_NetConsole.Drop(ClientID, aBuf);
+				return 0;
+			}
+		}
+	}
+
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "client accepted. cid=%d addr=%s'", ClientID, aAddrStr);
 	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "econ", aBuf);
@@ -21,6 +40,36 @@ int CEcon::NewClientCallback(int ClientID, void *pUser)
 
 	pThis->m_NetConsole.Send(ClientID, "Enter password:");
 	return 0;
+}
+
+bool CEcon::IsProxy(const NETADDR *pAddr)
+{
+    char aAddrStr[NETADDR_MAXSTRSIZE];
+    net_addr_str(pAddr, aAddrStr, sizeof(aAddrStr), false);
+
+    CURL *curl = curl_easy_init();
+    if(!curl)
+        return false;
+
+    char aUrl[256];
+    str_format(aUrl, sizeof(aUrl), "https://proxycheck.io/v2/%s", aAddrStr);
+    
+    std::string response;
+    curl_easy_setopt(curl, CURLOPT_URL, aUrl);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, +[](char *ptr, size_t size, size_t nmemb, void *userdata) {
+        ((std::string*)userdata)->append(ptr, size * nmemb);
+        return size * nmemb;
+    });
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+    CURLcode res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if(res != CURLE_OK)
+        return false;
+
+    return (str_find_nocase(response.c_str(), "\"proxy\":\"yes\"") != nullptr);
 }
 
 int CEcon::DelClientCallback(int ClientID, const char *pReason, void *pUser, bool ForceDisconnect)
