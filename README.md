@@ -30,18 +30,5 @@ make -j$(nproc)
 
 ## Run the server
 ```sh
-./ddnet-server
-```
-
-## Clone the maps
-```sh
-git clone https://github.com/teemods/opengores-maps
-cd opengores-maps
-rm -rf maps7 scripts
-mv maps ../maps/
-```
-
-## Remove the maps (optional)
-```sh
-ls *.map | shuf | tail -n +50 | xargs -d '\n' rm
+./fng2_srv
 ```
