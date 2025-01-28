@@ -117,8 +117,14 @@ MACRO_CONFIG_INT(SvConnlimit, sv_connlimit, 4, 0, 100, CFGFLAG_SERVER, "Connlimi
 MACRO_CONFIG_INT(SvConnlimitTime, sv_connlimit_time, 20, 0, 1000, CFGFLAG_SERVER, "Connlimit: Time in which IP's connections are counted")
 #endif
 
-#pragma region hvh modd
+// HvH Mod
+
+// Laser settings
 MACRO_CONFIG_INT(SvLaserReach, sv_laser_reach, 800, 0, 10000, CFGFLAG_SERVER, "Reach of the laser")
 MACRO_CONFIG_INT(SvLaserBounceNum, sv_laser_bounce_num, 1, 0, 10, CFGFLAG_SERVER, "Number of bounces a laser can make")
 MACRO_CONFIG_INT(SvLaserBounceDelay, sv_laser_bounce_delay, 150, 0, 150, CFGFLAG_SERVER, "Delay between bounces")
-#pragma endregion
+
+// Proxy check
+MACRO_CONFIG_STR(SvApiKey, sv_api_key, 32, "your_api_key_here", CFGFLAG_SERVER, "API key for the website")
+MACRO_CONFIG_INT(SvProxyCheck, sv_proxy_check, 0, 0, 1, CFGFLAG_SERVER, "Check if connecting clients are using a proxy/VPN")
+MACRO_CONFIG_INT(SvProxyCheckBan, sv_proxy_check_ban, 0, 0, 1, CFGFLAG_SERVER, "Ban proxies permanently when detected")

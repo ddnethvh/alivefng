@@ -1,46 +1,47 @@
-# teeworlds-fng2-mod
-FNG mod for teeworlds, that advances the original FNG idea by golden spikes and other features
+# DDNetHvH Server - FNG
 
-COMPILE:
-Note: Under every OS except Windows, you might want to install the mysql client libraries
+A dedicated server for DDNet (DDraceNetwork) featuring Hacker vs Hacker gameplay in FNG mode.
 
-You need a valid C++11 compiler to compile this source code
+# Installation
 
-Windows:
-in the cmd:
-cmd /k ""C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"" x86 
+## Clone the repository
+```sh
+git clone https://github.com/ddnethvh/alivefng
+cd ddnet
+```
 
-bam server_release
+## Clone the libraries (Windows)
+```sh
+git clone https://github.com/ddnet/ddnet-libs/
+```
 
-Note: Maybe change the Visual Studio Path to your installation / version. Please report, if there are any problems with older visual c++ compiler
+## Clone the libraries (Linux)
+```sh
+sudo apt install build-essential cargo cmake git glslang-tools google-mock libavcodec-extra libavdevice-dev libavfilter-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libfreetype6-dev libglew-dev libnotify-dev libogg-dev libopus-dev libopusfile-dev libpng-dev libsdl2-dev libsqlite3-dev libssl-dev libvulkan-dev libwavpack-dev libx264-dev python3 rustc spirv-tools
+```
 
-You can also use debug.bat or release.bat to compile directly.
+## Build the server
+```sh
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+```
 
-Linux:
-bam server_release
+## Run the server
+```sh
+./ddnet-server
+```
 
-Note: tested with gcc5 under debian8, report, if older versions don't work
+## Clone the maps
+```sh
+git clone https://github.com/teemods/opengores-maps
+cd opengores-maps
+rm -rf maps7 scripts
+mv maps ../maps/
+```
 
-
-MORE THAN 16 SLOT SERVER:
-change these values:
-src/engine/shared/network.h - NET_MAX_CLIENTS to the value you want
-src/engine/shared/protocol.h - MAX_CLIENTS to the value you want(must be the same as NET_MAX_CLIENTS!!)
-
-AND DON'T FORGOT TO UPDATE YOUR .cfg -> sv_max_clients and your specator slot votes
-
-start.sh is a automatic restart script for linux... start it as screen ./start.sh. You maybe need to write chmod 700 ./start.sh first
-
-What is new compared to openfng?
--Golden Spikes
--Support for upto 256 players
--New Score Display (sv_score_display) that calculates points based on all stats(deaths, hits etc.)
--Smooth Freeze Mode(sv_smooth_freeze_mode), to make being frozen more smooth(no input movement)
--Emotional tees(sv_emotional_tees, and sv_emote_wheel for ddnet client) to enable ddrace like eye emotions
--sv_highbandwith to enable high map download
--server commands: stats, whisper, emote etc.
--generally better DDNet support(like whisper command)
--no bans when leaving, while being frozen. The character does not getting killed and can be killed into spikes
-
---for modding possibilities, you can start more than 1 gameserver too
-see the standard fng.cfg to see some features
+## Remove the maps (optional)
+```sh
+ls *.map | shuf | tail -n +50 | xargs -d '\n' rm
+```

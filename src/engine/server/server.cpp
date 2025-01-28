@@ -30,6 +30,8 @@
 #include "register.h"
 #include "server.h"
 
+#include <curl/curl.h>
+
 #if defined(CONF_FAMILY_WINDOWS)
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
@@ -780,6 +782,24 @@ int CServer::NewClientCallbackImpl(int ClientID, void *pUser)
 int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
 {
 	CServer *pThis = (CServer *)pUser;
+
+	// Check if connection is from a proxy
+	if(g_Config.m_SvProxyCheck)
+	{
+		const NETADDR *pAddr = pThis->m_NetServer.ClientAddr(ClientID);
+
+		if(pAddr)
+		{
+			if(pThis->IsProxy(pAddr))
+			{
+				char aBuf[128];
+				str_format(aBuf, sizeof(aBuf), "Proxy connections are not allowed");
+				pThis->m_NetServer.Drop(ClientID, aBuf);
+				return 0;
+			}
+		}
+	}
+	
 	int r = NewClientCallbackImpl(ClientID, pUser);
 	pThis->m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
 
@@ -2553,3 +2573,92 @@ int main(int argc, const char **argv) // ignore_convention
 	return 0;
 }
 
+bool CServer::IsProxy(const NETADDR *pAddr)
+{
+    Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", "Checking for proxy...");
+    char aAddrStr[NETADDR_MAXSTRSIZE];
+    net_addr_str(pAddr, aAddrStr, sizeof(aAddrStr), false);
+
+    char aUrl[256];
+    str_format(aUrl, sizeof(aUrl), "https://proxycheck.io/v2/%s", aAddrStr);
+
+    CURL *curl = curl_easy_init();
+    if(!curl)
+        return false;
+
+    char aError[CURL_ERROR_SIZE];
+    char aResponse[4096] = {0};
+    size_t ResponseLength = 0;
+
+    curl_easy_setopt(curl, CURLOPT_URL, aUrl);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, [](void *ptr, size_t size, size_t nmemb, void *data) -> size_t {
+        size_t RealSize = size * nmemb;
+        char *Response = (char*)data;
+        size_t CurrentLength = str_length(Response);
+        if(CurrentLength + RealSize >= 4096)
+            return 0;
+        mem_copy(Response + CurrentLength, ptr, RealSize);
+        Response[CurrentLength + RealSize] = 0;
+        return RealSize;
+    });
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, aResponse);
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, aError);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 4000);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 15000);
+    curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 500);
+    curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 5);
+
+    CURLcode Result = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if(Result != CURLE_OK)
+    {
+        dbg_msg("antiproxy", "Curl error: %s", aError);
+        return false;
+    }
+
+    json_value *pJson = json_parse(aResponse, str_length(aResponse));
+    if(!pJson)
+        return false;
+
+    const json_value &rStatus = (*pJson)["status"];
+    const json_value &rAddr = (*pJson)[aAddrStr];
+
+    bool IsProxy = false;
+
+    if(rStatus.type == json_string && str_comp(rStatus, "ok") == 0)
+    {
+        if(rAddr.type == json_object)
+        {
+            const json_value &rProxy = rAddr["proxy"];
+            if(rProxy.type == json_string && str_comp(rProxy, "yes") == 0)
+            {
+                char aBuf[256];
+                str_format(aBuf, sizeof(aBuf), "Proxy detected: %s", aAddrStr);
+                Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
+                
+                if(g_Config.m_SvProxyCheckBan)
+                {
+                    // Ban the proxy permanently
+                    char aReason[128];
+                    str_format(aReason, sizeof(aReason), "Proxy/VPN detected");
+                    m_NetServer.NetBan()->BanAddr(pAddr, -1, aReason, false); // -1 means permanent ban
+                    
+                    str_format(aBuf, sizeof(aBuf), "Banned proxy: %s", aAddrStr);
+                    Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
+                }
+                
+                IsProxy = true;
+            }
+            else
+            {
+                char aBuf[256];
+                str_format(aBuf, sizeof(aBuf), "No proxy detected: %s", aAddrStr);
+                Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
+            }
+        }
+    }
+
+    json_value_free(pJson);
+    return IsProxy;
+}
