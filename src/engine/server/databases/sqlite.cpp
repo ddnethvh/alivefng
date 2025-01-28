@@ -78,9 +78,22 @@ CSqliteConnection::CSqliteConnection(const char *pFilename, bool Setup) :
 CSqliteConnection::~CSqliteConnection()
 {
 	if(m_pStmt != nullptr)
+	{
 		sqlite3_finalize(m_pStmt);
-	sqlite3_close(m_pDb);
-	m_pDb = nullptr;
+		m_pStmt = nullptr;
+	}
+	
+	if(m_pDb != nullptr)
+	{
+		sqlite3_close(m_pDb);
+		m_pDb = nullptr;
+	}
+
+	if(sqlite3_temp_directory)
+	{
+		sqlite3_free(sqlite3_temp_directory);
+		sqlite3_temp_directory = nullptr;
+	}
 }
 
 void CSqliteConnection::Print(IConsole *pConsole, const char *pMode)
@@ -112,14 +125,34 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 	if(m_pDb != nullptr)
 		return false;
 
-	int Result = sqlite3_open(m_aFilename, &m_pDb);
+	// Set temp directory for SQLite
+	char aTempPath[512];
+	fs_storage_path("tmp", aTempPath, sizeof(aTempPath));
+	sqlite3_temp_directory = sqlite3_mprintf("%s", aTempPath);
+
+	// Open database with additional flags for better memory handling
+	int Flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
+	int Result = sqlite3_open_v2(m_aFilename, &m_pDb, Flags, nullptr);
+	
 	if(Result != SQLITE_OK)
 	{
 		str_format(pError, ErrorSize, "Can't open sqlite database: '%s'", sqlite3_errmsg(m_pDb));
+		if(m_pDb)
+		{
+			sqlite3_close(m_pDb);
+			m_pDb = nullptr;
+		}
 		return true;
 	}
 
-	sqlite3_busy_timeout(m_pDb, -1);
+	// Configure SQLite for better memory handling
+	Execute("PRAGMA temp_store = MEMORY", pError, ErrorSize);
+	Execute("PRAGMA journal_mode = WAL", pError, ErrorSize);
+	Execute("PRAGMA synchronous = NORMAL", pError, ErrorSize);
+	Execute("PRAGMA cache_size = 2000", pError, ErrorSize);
+	Execute("PRAGMA mmap_size = 268435456", pError, ErrorSize);  // 256MB memory map
+
+	sqlite3_busy_timeout(m_pDb, 1000);  // 1 second timeout
 
 	if(m_Setup)
 	{
