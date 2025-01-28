@@ -2588,7 +2588,6 @@ bool CServer::IsProxy(const NETADDR *pAddr)
 
     char aError[CURL_ERROR_SIZE];
     char aResponse[4096] = {0};
-    size_t ResponseLength = 0;
 
     curl_easy_setopt(curl, CURLOPT_URL, aUrl);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, [](void *ptr, size_t size, size_t nmemb, void *data) -> size_t {
@@ -2617,48 +2616,38 @@ bool CServer::IsProxy(const NETADDR *pAddr)
         return false;
     }
 
-    json_value *pJson = json_parse(aResponse, str_length(aResponse));
-    if(!pJson)
-        return false;
-
-    const json_value &rStatus = (*pJson)["status"];
-    const json_value &rAddr = (*pJson)[aAddrStr];
-
+    // Simple string-based response parsing since we don't have JSON library
     bool IsProxy = false;
-
-    if(rStatus.type == json_string && str_comp(rStatus, "ok") == 0)
+    
+    // Check if response contains proxy indicators
+    if(str_find_nocase(aResponse, "\"status\":\"ok\""))
     {
-        if(rAddr.type == json_object)
+        if(str_find_nocase(aResponse, "\"proxy\":\"yes\""))
         {
-            const json_value &rProxy = rAddr["proxy"];
-            if(rProxy.type == json_string && str_comp(rProxy, "yes") == 0)
+            char aBuf[256];
+            str_format(aBuf, sizeof(aBuf), "Proxy detected: %s", aAddrStr);
+            Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
+            
+            if(g_Config.m_SvProxyCheckBan)
             {
-                char aBuf[256];
-                str_format(aBuf, sizeof(aBuf), "Proxy detected: %s", aAddrStr);
-                Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
+                // Ban the proxy permanently
+                char aReason[128];
+                str_format(aReason, sizeof(aReason), "Proxy/VPN detected");
+                m_NetServer.NetBan()->BanAddr(pAddr, -1, aReason); // -1 means permanent ban
                 
-                if(g_Config.m_SvProxyCheckBan)
-                {
-                    // Ban the proxy permanently
-                    char aReason[128];
-                    str_format(aReason, sizeof(aReason), "Proxy/VPN detected");
-                    m_NetServer.NetBan()->BanAddr(pAddr, -1, aReason, false); // -1 means permanent ban
-                    
-                    str_format(aBuf, sizeof(aBuf), "Banned proxy: %s", aAddrStr);
-                    Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
-                }
-                
-                IsProxy = true;
-            }
-            else
-            {
-                char aBuf[256];
-                str_format(aBuf, sizeof(aBuf), "No proxy detected: %s", aAddrStr);
+                str_format(aBuf, sizeof(aBuf), "Banned proxy: %s", aAddrStr);
                 Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
             }
+            
+            IsProxy = true;
+        }
+        else
+        {
+            char aBuf[256];
+            str_format(aBuf, sizeof(aBuf), "No proxy detected: %s", aAddrStr);
+            Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
         }
     }
 
-    json_value_free(pJson);
     return IsProxy;
 }
