@@ -20,7 +20,7 @@ CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 	if(g_Config.m_SvUseSql)
 	{
 		char aPath[512];
-		fs_storage_path("fng_ratings.db", aPath, sizeof(aPath));
+		fs_storage_path("fng_ratings.sqlite", aPath, sizeof(aPath));
 		m_pDatabase = CreateSqliteConnection(aPath, true);
 		if(m_pDatabase)
 		{

@@ -695,11 +695,7 @@ set_src(ENGINE_SERVER GLOB src/engine/server
   server.h
 )
 set_src(ENGINE_DATABASE GLOB src/engine/server/databases
-  connection.cpp
   connection.h
-  connection_pool.cpp
-  connection_pool.h
-  mysql.cpp
   sqlite.cpp
 )
 set_src(GAME_SERVER GLOB_RECURSE src/game/server
@@ -763,8 +759,7 @@ add_executable(${TARGET_SERVER}
   ${SERVER_ICON}
   $<TARGET_OBJECTS:engine-shared>
   $<TARGET_OBJECTS:game-shared>
-  src/engine/server/databases/sqlite.cpp
-  src/engine/server/databases/connection.cpp
+  ${ENGINE_DATABASE}
 )
 target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER} ${SQLite3_LIBRARIES})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
