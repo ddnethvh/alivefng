@@ -17,24 +17,47 @@ CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 	m_Warmup = m_Config.m_SvWarmup;
 	
 	// Initialize database connection if enabled
-	if(m_Config.m_SvUseSql)
+	if(g_Config.m_SvUseSql)
 	{
-		m_pDatabase = CreateSqliteConnection(m_Config.m_SvSqliteFile, true);
+		char aPath[512];
+		fs_storage_path("fng_ratings.db", aPath, sizeof(aPath));
+		m_pDatabase = CreateSqliteConnection(aPath, true);
 		if(m_pDatabase)
 		{
-			// Create ratings table directly with SQL query
-			const char* pQuery = "CREATE TABLE IF NOT EXISTS fng_ratings ("
-				"Name VARCHAR(16) COLLATE BINARY NOT NULL, "
-				"Rating INT DEFAULT 1000, "
-				"PRIMARY KEY (Name)"
-				")";
-			
 			char aError[256];
-			if(m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError)))
-				return;
+			bool Success = true;
 			
-			int NumUpdated;
-			m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
+			// Create ratings table
+			if(Success)
+			{
+				const char* pQuery = 
+					"CREATE TABLE IF NOT EXISTS fng_ratings ("
+					"    Name VARCHAR(16) COLLATE BINARY NOT NULL,"
+					"    Rating INTEGER DEFAULT 1000,"
+					"    PRIMARY KEY (Name)"
+					")";
+				
+				Success = !m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError));
+				if(Success)
+				{
+					int NumUpdated;
+					Success = !m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
+				}
+			}
+			
+			if(!Success)
+			{
+				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", aError);
+				m_pDatabase.reset();
+			}
+			else
+			{
+				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", "Successfully initialized FNG ratings database");
+			}
+		}
+		else
+		{
+			GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", "Failed to create database connection");
 		}
 	}
 }
@@ -389,7 +412,10 @@ void CGameControllerFNG2::UpdatePlayerRating(const char* pName, int Points)
 						"VALUES (?, COALESCE((SELECT Rating + ? FROM fng_ratings WHERE Name = ?), 1000 + ?))";
 	
 	if(m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError)))
+	{
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", aError);
 		return;
+	}
 
 	m_pDatabase->BindString(1, pName);
 	m_pDatabase->BindInt(2, Points);
@@ -397,5 +423,8 @@ void CGameControllerFNG2::UpdatePlayerRating(const char* pName, int Points)
 	m_pDatabase->BindInt(4, Points);
 
 	int NumUpdated;
-	m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
+	if(m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError)))
+	{
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", aError);
+	}
 }

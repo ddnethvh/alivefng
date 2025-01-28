@@ -5,6 +5,7 @@
 #include <game/server/gamecontroller.h>
 #include <base/vmath.h>
 #include <engine/server/databases/connection.h>
+#include <base/system.h>
 
 class CGameControllerFNG2 : public IGameController
 {
