@@ -6,6 +6,7 @@
 #include <engine/shared/config.h>
 #include <string.h>
 #include <stdio.h>
+#include <engine/server/databases/connection.h>
 
 CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 : IGameController((class CGameContext*)pGameServer)
@@ -14,6 +15,24 @@ CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 	m_GameFlags = GAMEFLAG_TEAMS;
 	
 	m_Warmup = m_Config.m_SvWarmup;
+	
+	// Initialize database connection if enabled
+	if(m_Config.m_SvUseSql)
+	{
+		m_pDatabase = CreateSqliteConnection(m_Config.m_SvSqliteFile, true);
+		if(m_pDatabase)
+		{
+			// Create ratings table
+			char aBuf[512];
+			char aError[256];
+			m_pDatabase->FormatCreateRatings(aBuf, sizeof(aBuf));
+			if(m_pDatabase->PrepareStatement(aBuf, aError, sizeof(aError)))
+				return;
+			
+			int NumUpdated;
+			m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
+		}
+	}
 }
 
 CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer, CConfiguration& pConfig)
@@ -309,6 +328,30 @@ int CGameControllerFNG2::OnCharacterDeath(class CCharacter *pVictim, class CPlay
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*.75f;		
 	} else if (Weapon == WEAPON_WORLD)
 		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*.75f;
+
+	// Update ratings based on weapon type
+	if(pKiller != pVictim->GetPlayer()) // Don't update rating for suicides
+	{
+		const char* pKillerName = Server()->ClientName(pKiller->GetCID());
+		int Points = 0;
+
+		if(Weapon == WEAPON_RIFLE || Weapon == WEAPON_GRENADE) {
+			Points = 1;
+		} else if(Weapon == WEAPON_SPIKE_NORMAL) {
+			Points = m_Config.m_SvPlayerScoreSpikeNormal;
+		} else if(Weapon == WEAPON_SPIKE_RED || Weapon == WEAPON_SPIKE_BLUE) {
+			Points = m_Config.m_SvPlayerScoreSpikeTeam;
+		} else if(Weapon == WEAPON_SPIKE_GREEN) {
+			Points = m_Config.m_SvPlayerScoreSpikeGreen;
+		} else if(Weapon == WEAPON_SPIKE_PURPLE) {
+			Points = m_Config.m_SvPlayerScoreSpikeGold;
+		}
+
+		if(Points > 0) {
+			UpdatePlayerRating(pKillerName, Points);
+		}
+	}
+
 	return 0;
 }
 
@@ -330,4 +373,25 @@ void CGameControllerFNG2::EndRound()
 {
 	IGameController::EndRound();
 	GameServer()->SendRoundStats();
+}
+
+void CGameControllerFNG2::UpdatePlayerRating(const char* pName, int Points)
+{
+	if(!m_pDatabase)
+		return;
+
+	char aError[256];
+	const char* pQuery = "INSERT OR REPLACE INTO fng_ratings (Name, Rating) "
+						"VALUES (?, COALESCE((SELECT Rating + ? FROM fng_ratings WHERE Name = ?), 1000 + ?))";
+	
+	if(m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError)))
+		return;
+
+	m_pDatabase->BindString(1, pName);
+	m_pDatabase->BindInt(2, Points);
+	m_pDatabase->BindString(3, pName);
+	m_pDatabase->BindInt(4, Points);
+
+	int NumUpdated;
+	m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
 }

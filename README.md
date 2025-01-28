@@ -7,17 +7,14 @@ A dedicated server for DDNet (DDraceNetwork) featuring Hacker vs Hacker gameplay
 ## Clone the repository
 ```sh
 git clone https://github.com/ddnethvh/alivefng
-cd ddnet
-```
-
-## Clone the libraries (Windows)
-```sh
-git clone https://github.com/ddnet/ddnet-libs/
+cd alivefng
 ```
 
 ## Clone the libraries (Linux)
 ```sh
 sudo apt install build-essential cargo cmake git glslang-tools google-mock libavcodec-extra libavdevice-dev libavfilter-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libfreetype6-dev libglew-dev libnotify-dev libogg-dev libopus-dev libopusfile-dev libpng-dev libsdl2-dev libsqlite3-dev libssl-dev libvulkan-dev libwavpack-dev libx264-dev python3 rustc spirv-tools
+# Or:
+sudo apt install build-essential cargo cmake git google-mock libcurl4-openssl-dev libsqlite3-dev libssl-dev python3 rustc
 ```
 
 ## Build the server

@@ -294,6 +294,20 @@ find_package(Threads)
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
+# Add SQLite3 dependency
+find_package(SQLite3 REQUIRED)
+include_directories(${SQLite3_INCLUDE_DIRS})
+
+# Add MySQL dependency (optional)
+option(MYSQL "Enable MySQL support" OFF)
+if(MYSQL)
+  find_package(MySQL)
+  if(MYSQL_FOUND)
+    add_definitions(-DCONF_MYSQL)
+    include_directories(${MYSQL_INCLUDE_DIRS})
+  endif()
+endif()
+
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(CMAKE_OTOOL otool)
   find_program(DMG dmg)

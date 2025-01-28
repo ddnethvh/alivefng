@@ -128,3 +128,7 @@ MACRO_CONFIG_INT(SvLaserBounceDelay, sv_laser_bounce_delay, 150, 0, 150, CFGFLAG
 MACRO_CONFIG_STR(SvApiKey, sv_api_key, 32, "your_api_key_here", CFGFLAG_SERVER, "API key for the website")
 MACRO_CONFIG_INT(SvProxyCheck, sv_proxy_check, 0, 0, 1, CFGFLAG_SERVER, "Check if connecting clients are using a proxy/VPN")
 MACRO_CONFIG_INT(SvProxyCheckBan, sv_proxy_check_ban, 0, 0, 1, CFGFLAG_SERVER, "Ban proxies permanently when detected")
+
+// Database
+MACRO_CONFIG_INT(SvUseSql, sv_use_sql, 0, 0, 1, CFGFLAG_SERVER, "Use SQLite database")
+MACRO_CONFIG_STR(SvSqliteFile, sv_sqlite_file, 128, "fng-server.sqlite", CFGFLAG_SERVER, "Path to the SQLite database file")
