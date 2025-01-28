@@ -27,15 +27,6 @@ public:
 			sqlite3_close(m_pDb);
 	}
 
-	void Print(IConsole *pConsole, const char *pMode) override
-	{
-		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf),
-			"SQLite-%s: DB: '%s'",
-			pMode, m_aFilename);
-		pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-	}
-
 	bool Connect(char *pError, int ErrorSize) override
 	{
 		if(m_pDb)
@@ -100,43 +91,10 @@ public:
 		m_Done = false;
 	}
 
-	void BindBlob(int Idx, unsigned char *pBlob, int Size) override
-	{
-		int Result = sqlite3_bind_blob(m_pStmt, Idx, pBlob, Size, nullptr);
-		AssertNoError(Result);
-		m_Done = false;
-	}
-
 	void BindInt(int Idx, int Value) override
 	{
 		sqlite3_bind_int(m_pStmt, Idx, Value);
 		m_Done = false;
-	}
-
-	void BindInt64(int Idx, int64_t Value) override
-	{
-		int Result = sqlite3_bind_int64(m_pStmt, Idx, Value);
-		AssertNoError(Result);
-		m_Done = false;
-	}
-
-	void BindFloat(int Idx, float Value) override
-	{
-		int Result = sqlite3_bind_double(m_pStmt, Idx, (double)Value);
-		AssertNoError(Result);
-		m_Done = false;
-	}
-
-	void BindNull(int Idx) override
-	{
-		int Result = sqlite3_bind_null(m_pStmt, Idx);
-		AssertNoError(Result);
-		m_Done = false;
-	}
-
-	void Print() override
-	{
-		// Implementation needed
 	}
 
 	bool Step(bool *pEnd, char *pError, int ErrorSize) override
@@ -179,19 +137,9 @@ public:
 		return sqlite3_column_type(m_pStmt, Col - 1) == SQLITE_NULL;
 	}
 
-	float GetFloat(int Col) override
-	{
-		return (float)sqlite3_column_double(m_pStmt, Col - 1);
-	}
-
 	int GetInt(int Col) override
 	{
 		return sqlite3_column_int(m_pStmt, Col - 1);
-	}
-
-	int64_t GetInt64(int Col) override
-	{
-		return sqlite3_column_int64(m_pStmt, Col - 1);
 	}
 
 	void GetString(int Col, char *pBuffer, int BufferSize) override
@@ -199,23 +147,14 @@ public:
 		str_copy(pBuffer, (const char *)sqlite3_column_text(m_pStmt, Col - 1), BufferSize);
 	}
 
-	int GetBlob(int Col, unsigned char *pBuffer, int BufferSize) override
-	{
-		int Size = sqlite3_column_bytes(m_pStmt, Col - 1);
-		Size = std::min(Size, BufferSize);
-		mem_copy(pBuffer, sqlite3_column_blob(m_pStmt, Col - 1), Size);
-		return Size;
-	}
-
 	bool AddPoints(const char *pPlayer, int Points, char *pError, int ErrorSize) override
 	{
-		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf),
+		const char *pQuery = 
 			"INSERT INTO fng_ratings(Name, Rating) "
 			"VALUES (?, ?) "
-			"ON CONFLICT(Name) DO UPDATE SET Rating=Rating+?",
-			GetPrefix());
-		if(PrepareStatement(aBuf, pError, ErrorSize))
+			"ON CONFLICT(Name) DO UPDATE SET Rating=Rating+?";
+
+		if(PrepareStatement(pQuery, pError, ErrorSize))
 			return true;
 		BindString(1, pPlayer);
 		BindInt(2, Points);
@@ -223,16 +162,6 @@ public:
 		bool End;
 		return Step(&End, pError, ErrorSize);
 	}
-
-	const char *BinaryCollate() const override { return "BINARY"; }
-	void ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize) override {}
-	const char *InsertTimestampAsUtc() const override { return "DATETIME(?, 'utc')"; }
-	const char *CollateNocase() const override { return "? COLLATE NOCASE"; }
-	const char *InsertIgnore() const override { return "INSERT OR IGNORE"; }
-	const char *Random() const override { return "RANDOM()"; }
-	const char *MedianMapTime(char *pBuffer, int BufferSize) const override { return ""; }
-	const char *False() const override { return "0"; }
-	const char *True() const override { return "1"; }
 
 private:
 	bool Execute(const char *pQuery, char *pError, int ErrorSize)
@@ -243,26 +172,6 @@ private:
 		{
 			str_format(pError, ErrorSize, "Error executing query: %s", pErrorMsg);
 			sqlite3_free(pErrorMsg);
-			return true;
-		}
-		return false;
-	}
-
-	void AssertNoError(int Result)
-	{
-		char aBuf[128];
-		if(FormatError(Result, aBuf, sizeof(aBuf)))
-		{
-			dbg_msg("sqlite", "unexpected sqlite error: %s", aBuf);
-			dbg_assert(0, "sqlite error");
-		}
-	}
-
-	bool FormatError(int Result, char *pError, int ErrorSize)
-	{
-		if(Result != SQLITE_OK)
-		{
-			str_copy(pError, sqlite3_errmsg(m_pDb), ErrorSize);
 			return true;
 		}
 		return false;
