@@ -22,11 +22,15 @@ CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 		m_pDatabase = CreateSqliteConnection(m_Config.m_SvSqliteFile, true);
 		if(m_pDatabase)
 		{
-			// Create ratings table
-			char aBuf[512];
+			// Create ratings table directly with SQL query
+			const char* pQuery = "CREATE TABLE IF NOT EXISTS fng_ratings ("
+				"Name VARCHAR(16) COLLATE BINARY NOT NULL, "
+				"Rating INT DEFAULT 1000, "
+				"PRIMARY KEY (Name)"
+				")";
+			
 			char aError[256];
-			m_pDatabase->FormatCreateRatings(aBuf, sizeof(aBuf));
-			if(m_pDatabase->PrepareStatement(aBuf, aError, sizeof(aError)))
+			if(m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError)))
 				return;
 			
 			int NumUpdated;
