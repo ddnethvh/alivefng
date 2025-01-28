@@ -2574,6 +2574,12 @@ int main(int argc, const char **argv) // ignore_convention
 	return 0;
 }
 
+static size_t WriteCallback(char *contents, size_t size, size_t nmemb, void *userp)
+{
+    strcat((char*)userp, contents);
+    return size * nmemb;
+}
+
 bool CServer::IsProxy(const NETADDR *pAddr)
 {
     char aAddrStr[NETADDR_MAXSTRSIZE];
@@ -2588,7 +2594,7 @@ bool CServer::IsProxy(const NETADDR *pAddr)
 
     char aResponse[4096] = {0};
     curl_easy_setopt(curl, CURLOPT_URL, aUrl);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, aResponse);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15);
 
@@ -2626,10 +2632,4 @@ bool CServer::IsProxy(const NETADDR *pAddr)
     }
 
     return IsProxy;
-}
-
-static size_t curl_write_callback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    strcat((char*)userp, (char*)contents);
-    return size * nmemb;
 }
