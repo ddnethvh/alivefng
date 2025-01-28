@@ -1,12 +1,12 @@
 #ifndef ENGINE_SERVER_DATABASES_CONNECTION_H
 #define ENGINE_SERVER_DATABASES_CONNECTION_H
 
+#include <engine/shared/protocol.h>
 #include <memory>
 
 enum
 {
 	// MAX_NAME_LENGTH includes the size with \0, which is not necessary in SQL
-	MAX_NAME_LENGTH = 16,
 	MAX_NAME_LENGTH_SQL = MAX_NAME_LENGTH - 1,
 };
 
