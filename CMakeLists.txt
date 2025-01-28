@@ -760,6 +760,8 @@ add_executable(${TARGET_SERVER}
   ${SERVER_ICON}
   $<TARGET_OBJECTS:engine-shared>
   $<TARGET_OBJECTS:game-shared>
+  src/engine/server/databases/sqlite.cpp
+  src/engine/server/databases/connection.cpp
 )
 target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
