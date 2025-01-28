@@ -296,6 +296,9 @@ include_directories(${CURL_INCLUDE_DIRS})
 
 # Add SQLite3 dependency
 find_package(SQLite3 REQUIRED)
+message(STATUS "SQLite3 found: ${SQLite3_FOUND}")
+message(STATUS "SQLite3 libraries: ${SQLite3_LIBRARIES}")
+message(STATUS "SQLite3 include dirs: ${SQLite3_INCLUDE_DIRS}")
 include_directories(${SQLite3_INCLUDE_DIRS})
 
 # Add MySQL dependency (optional)
@@ -763,7 +766,7 @@ add_executable(${TARGET_SERVER}
   src/engine/server/databases/sqlite.cpp
   src/engine/server/databases/connection.cpp
 )
-target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
+target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER} ${SQLite3_LIBRARIES})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
 
