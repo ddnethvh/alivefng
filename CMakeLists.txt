@@ -294,23 +294,6 @@ find_package(Threads)
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
-# Add SQLite3 dependency
-find_package(SQLite3 REQUIRED)
-message(STATUS "SQLite3 found: ${SQLite3_FOUND}")
-message(STATUS "SQLite3 libraries: ${SQLite3_LIBRARIES}")
-message(STATUS "SQLite3 include dirs: ${SQLite3_INCLUDE_DIRS}")
-include_directories(${SQLite3_INCLUDE_DIRS})
-
-# Add MySQL dependency (optional)
-option(MYSQL "Enable MySQL support" OFF)
-if(MYSQL)
-  find_package(MySQL)
-  if(MYSQL_FOUND)
-    add_definitions(-DCONF_MYSQL)
-    include_directories(${MYSQL_INCLUDE_DIRS})
-  endif()
-endif()
-
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(CMAKE_OTOOL otool)
   find_program(DMG dmg)
@@ -694,10 +677,6 @@ set_src(ENGINE_SERVER GLOB src/engine/server
   server.cpp
   server.h
 )
-set_src(ENGINE_DATABASE GLOB src/engine/server/databases
-  connection.h
-  sqlite.cpp
-)
 set_src(GAME_SERVER GLOB_RECURSE src/game/server
   entities/character.cpp
   entities/character.h
@@ -759,9 +738,8 @@ add_executable(${TARGET_SERVER}
   ${SERVER_ICON}
   $<TARGET_OBJECTS:engine-shared>
   $<TARGET_OBJECTS:game-shared>
-  ${ENGINE_DATABASE}
 )
-target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER} ${SQLite3_LIBRARIES})
+target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
 

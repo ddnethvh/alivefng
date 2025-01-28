@@ -4,7 +4,6 @@
 
 #include <game/server/gamecontroller.h>
 #include <base/vmath.h>
-#include <engine/server/databases/connection.h>
 #include <base/system.h>
 
 class CGameControllerFNG2 : public IGameController
@@ -21,9 +20,7 @@ public:
 	
 	virtual void PostReset();
 protected:
-	void EndRound();	
+	void EndRound();
 	void UpdatePlayerRating(const char* pName, int Points);
-private:
-	std::unique_ptr<IDbConnection> m_pDatabase;
 };
 #endif

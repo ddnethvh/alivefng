@@ -6,7 +6,6 @@
 #include <engine/shared/config.h>
 #include <string.h>
 #include <stdio.h>
-#include <engine/server/databases/connection.h>
 
 CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 : IGameController((class CGameContext*)pGameServer)
@@ -15,51 +14,6 @@ CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer)
 	m_GameFlags = GAMEFLAG_TEAMS;
 	
 	m_Warmup = m_Config.m_SvWarmup;
-	
-	// Initialize database connection if enabled
-	if(g_Config.m_SvUseSql)
-	{
-		char aPath[512];
-		fs_storage_path("fng_ratings.sqlite", aPath, sizeof(aPath));
-		m_pDatabase = CreateSqliteConnection(aPath, true);
-		if(m_pDatabase)
-		{
-			char aError[256];
-			bool Success = true;
-			
-			// Create ratings table
-			if(Success)
-			{
-				const char* pQuery = 
-					"CREATE TABLE IF NOT EXISTS fng_ratings ("
-					"    Name VARCHAR(16) COLLATE BINARY NOT NULL,"
-					"    Rating INTEGER DEFAULT 1000,"
-					"    PRIMARY KEY (Name)"
-					")";
-				
-				Success = !m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError));
-				if(Success)
-				{
-					int NumUpdated;
-					Success = !m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
-				}
-			}
-			
-			if(!Success)
-			{
-				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", aError);
-				m_pDatabase.reset();
-			}
-			else
-			{
-				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", "Successfully initialized FNG ratings database");
-			}
-		}
-		else
-		{
-			GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", "Failed to create database connection");
-		}
-	}
 }
 
 CGameControllerFNG2::CGameControllerFNG2(class CGameContext *pGameServer, CConfiguration& pConfig)
@@ -401,30 +355,7 @@ void CGameControllerFNG2::EndRound()
 	IGameController::EndRound();
 	GameServer()->SendRoundStats();
 }
-
 void CGameControllerFNG2::UpdatePlayerRating(const char* pName, int Points)
 {
-	if(!m_pDatabase)
-		return;
-
-	char aError[256];
-	const char* pQuery = "INSERT OR REPLACE INTO fng_ratings (Name, Rating) "
-						"VALUES (?, COALESCE((SELECT Rating + ? FROM fng_ratings WHERE Name = ?), 1000 + ?))";
 	
-	if(m_pDatabase->PrepareStatement(pQuery, aError, sizeof(aError)))
-	{
-		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", aError);
-		return;
-	}
-
-	m_pDatabase->BindString(1, pName);
-	m_pDatabase->BindInt(2, Points);
-	m_pDatabase->BindString(3, pName);
-	m_pDatabase->BindInt(4, Points);
-
-	int NumUpdated;
-	if(m_pDatabase->ExecuteUpdate(&NumUpdated, aError, sizeof(aError)))
-	{
-		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "sql", aError);
-	}
 }
