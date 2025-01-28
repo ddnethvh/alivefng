@@ -2612,7 +2612,7 @@ bool CServer::IsProxy(const NETADDR *pAddr)
         {
             char aReason[128];
             str_format(aReason, sizeof(aReason), "Proxy/VPN detected");
-            m_NetServer.NetBan()->BanAddr(pAddr, -1, aReason, false);
+            m_NetServer.NetBan()->BanAddr(pAddr, -1, aReason);
             
             str_format(aBuf, sizeof(aBuf), "Banned proxy: %s", aAddrStr);
             Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "antiproxy", aBuf);
@@ -2626,4 +2626,10 @@ bool CServer::IsProxy(const NETADDR *pAddr)
     }
 
     return IsProxy;
+}
+
+static size_t curl_write_callback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    strcat((char*)userp, (char*)contents);
+    return size * nmemb;
 }
