@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "../system.h"
@@ -120,18 +119,18 @@ class CSemaphore
 	std::atomic_int m_Count{0};
 
 public:
-	CSemaphore() { sphore_init(&m_Sem); }
-	~CSemaphore() { sphore_destroy(&m_Sem); }
+	CSemaphore() { semaphore_init(&m_Sem); }
+	~CSemaphore() { semaphore_destroy(&m_Sem); }
 	CSemaphore(const CSemaphore &) = delete;
 	int GetApproximateValue() { return m_Count.load(); }
 	void Wait()
 	{
-		sphore_wait(&m_Sem);
+		semaphore_wait(&m_Sem);
 		m_Count.fetch_sub(1);
 	}
 	void Signal()
 	{
 		m_Count.fetch_add(1);
-		sphore_signal(&m_Sem);
+		semaphore_signal(&m_Sem);
 	}
 };

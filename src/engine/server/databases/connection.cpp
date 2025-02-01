@@ -2,7 +2,7 @@
 
 IDbConnection::IDbConnection(const char *pPrefix)
 {
-	str_copy(m_aPrefix, pPrefix);
+	str_copy(m_aPrefix, pPrefix, sizeof(m_aPrefix));
 }
 
 void IDbConnection::FormatCreateRace(char *aBuf, unsigned int BufferSize, bool Backup) const
