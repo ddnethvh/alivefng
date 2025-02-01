@@ -41,6 +41,8 @@
 #include <engine/server/databases/connection_pool.h>
 #include <engine/storage.h>
 
+#define IO_MAX_PATH_LENGTH 512
+
 static const char *StrLtrim(const char *pStr)
 {
 	while(*pStr && *pStr >= 0 && *pStr <= 32)
