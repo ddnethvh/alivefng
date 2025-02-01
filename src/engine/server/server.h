@@ -4,6 +4,7 @@
 #define ENGINE_SERVER_SERVER_H
 
 #include <engine/server.h>
+#include <engine/server/databases/connection_pool.h>
 
 
 class CSnapIDPool
@@ -67,6 +68,9 @@ class CServer : public IServer
 	class IStorage *m_pStorage;
 
 	int m_PlayerCount;
+private:
+	CDbConnectionPool m_DbPool;
+
 public:
 	class IGameServer *GameServer() { return m_pGames->m_pGameServer; }
 	class IConsole *Console() { return m_pConsole; }
@@ -281,6 +285,8 @@ public:
 	void SnapSetStaticsize(int ItemType, int Size);
 
 	bool IsProxy(const NETADDR *pAddr);
+
+	CDbConnectionPool *DbPool() { return &m_DbPool; }
 };
 
 #endif
