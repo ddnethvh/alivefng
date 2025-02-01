@@ -38,6 +38,9 @@
 	#include <windows.h>
 #endif
 
+#include <engine/server/databases/connection_pool.h>
+#include <engine/storage.h>
+
 static const char *StrLtrim(const char *pStr)
 {
 	while(*pStr && *pStr >= 0 && *pStr <= 32)
@@ -1814,16 +1817,16 @@ int CServer::Run()
 	if(Config()->m_SvSqliteFile[0] != '\0')
 	{
 		char aFullPath[IO_MAX_PATH_LENGTH];
-		Storage()->GetCompletePath(IStorage::TYPE_SAVE_OR_ABSOLUTE, Config()->m_SvSqliteFile, aFullPath, sizeof(aFullPath));
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, Config()->m_SvSqliteFile, aFullPath, sizeof(aFullPath));
 
 		if(Config()->m_SvUseSql)
 		{
-			DbPool()->RegisterSqliteDatabase(CDbConnectionPool::WRITE_BACKUP, aFullPath);
+			DbPool()->RegisterSqliteDatabase(CDbConnectionPool::Mode::WRITE_BACKUP, aFullPath);
 		}
 		else
 		{
-			DbPool()->RegisterSqliteDatabase(CDbConnectionPool::READ, aFullPath);
-			DbPool()->RegisterSqliteDatabase(CDbConnectionPool::WRITE, aFullPath);
+			DbPool()->RegisterSqliteDatabase(CDbConnectionPool::Mode::READ, aFullPath);
+			DbPool()->RegisterSqliteDatabase(CDbConnectionPool::Mode::WRITE, aFullPath);
 		}
 	}
 
