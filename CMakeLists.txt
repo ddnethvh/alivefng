@@ -738,7 +738,7 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS} CURL::libcurl ${SQLITE3_LIBRARIES})
+set(LIBS_SERVER ${LIBS} CURL::libcurl SQLite::SQLite3)
 
 # Target
 set(TARGET_SERVER ${SERVER_EXECUTABLE})
