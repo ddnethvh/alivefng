@@ -1838,25 +1838,20 @@ int CServer::Run()
 	{
 		// sweet!
 		BindAddr.type = NETTYPE_ALL;
+		BindAddr.port = g_Config.m_SvPort;
 	}
 	else
 	{
 		mem_zero(&BindAddr, sizeof(BindAddr));
 		BindAddr.type = NETTYPE_ALL;
+		BindAddr.port = g_Config.m_SvPort;
 	}
 
-	int Port = g_Config.m_SvPort;
-	for(BindAddr.port = Port != 0 ? Port : 8303; !m_NetServer.Open(BindAddr, &m_ServerBan, g_Config.m_SvMaxClients, g_Config.m_SvMaxClientsPerIP, 0); BindAddr.port++)
+	if(!m_NetServer.Open(BindAddr, &m_ServerBan, g_Config.m_SvMaxClients, g_Config.m_SvMaxClientsPerIP, 0))
 	{
-		if(Port != 0 || BindAddr.port >= 8310)
-		{
-			dbg_msg("server", "couldn't open socket. port %d might already be in use", BindAddr.port);
-			return -1;
-		}
+		dbg_msg("server", "couldn't open socket. port %d might already be in use", g_Config.m_SvPort);
+		return -1;
 	}
-
-	if(Port == 0)
-		dbg_msg("server", "using port %d", BindAddr.port);
 
 	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, DelClientCallback, this);
 
