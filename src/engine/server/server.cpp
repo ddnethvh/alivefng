@@ -1814,10 +1814,10 @@ int CServer::Run()
 		return -1;
 	}
 
-	if(g_Config.>m_SvSqliteFile[0] != '\0')
+	if(g_Config.m_SvSqliteFile[0] != '\0')
 	{
 		char aFullPath[IO_MAX_PATH_LENGTH];
-		Storage()->GetCompletePath(IStorage::TYPE_SAVE, g_Config.>m_SvSqliteFile, aFullPath, sizeof(aFullPath));
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, g_Config.m_SvSqliteFile, aFullPath, sizeof(aFullPath));
 
 		if(g_Config.m_SvUseSql)
 		{
