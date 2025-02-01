@@ -476,8 +476,8 @@ bool CDbConnectionPool::ExecSqlFunc(IDbConnection *pConnection, CSqlExecData *pD
 CDbConnectionPool::CDbConnectionPool()
 {
 	m_pShared = std::make_shared<CSharedData>();
-	m_pWorkerThread = thread_init(CWorker::Start, new CWorker(m_pShared, 0), "database worker thread");
-	m_pBackupThread = thread_init(CBackup::Start, new CBackup(m_pShared, 0), "database backup worker thread");
+	m_pWorkerThread = thread_init(CWorker::Start, new CWorker(m_pShared, 0));
+	m_pBackupThread = thread_init(CBackup::Start, new CBackup(m_pShared, 0));
 }
 
 CDbConnectionPool::~CDbConnectionPool()
