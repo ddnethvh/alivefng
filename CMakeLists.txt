@@ -672,6 +672,12 @@ list(APPEND TARGETS_OWN engine-shared game-shared)
 
 # Sources
 set_src(ENGINE_SERVER GLOB src/engine/server
+  databases/connection.cpp
+  databases/connection.h
+  databases/connection_pool.cpp
+  databases/connection_pool.h
+  databases/mysql.cpp
+  databases/sqlite.cpp
   register.cpp
   register.h
   server.cpp
