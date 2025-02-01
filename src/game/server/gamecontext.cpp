@@ -1036,7 +1036,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		}
 		else if (MsgID == NETMSGTYPE_CL_CHANGEINFO)
 		{
-			if(m_Config->m_SvSpamprotection && pPlayer->m_LastChangeInfo && 50 * g_Config.SvNameChangeDelay > Server()->Tick())
+			if(m_Config->m_SvSpamprotection && pPlayer->m_LastChangeInfo && 50 * g_Config.m_SvNameChangeDelay > Server()->Tick())
 				return;
 
 			CNetMsg_Cl_ChangeInfo *pMsg = (CNetMsg_Cl_ChangeInfo *)pRawMsg;
