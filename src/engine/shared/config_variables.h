@@ -118,6 +118,8 @@ MACRO_CONFIG_INT(SvConnlimitTime, sv_connlimit_time, 20, 0, 1000, CFGFLAG_SERVER
 #endif
 
 // HvH Mod
+MACRO_CONFIG_INT(SvAnnounceNameChange, sv_announce_name_change, 0, 0, 1, CFGFLAG_SERVER, "Announce name changes")
+MACRO_CONFIG_INT(SvNameChangeDelay, sv_name_change_delay, 1, 0, 10, CFGFLAG_SERVER, "Delay in seconds between info changes")
 
 // Laser settings
 MACRO_CONFIG_INT(SvLaserReach, sv_laser_reach, 800, 0, 10000, CFGFLAG_SERVER, "Reach of the laser")

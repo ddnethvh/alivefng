@@ -1036,7 +1036,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		}
 		else if (MsgID == NETMSGTYPE_CL_CHANGEINFO)
 		{
-			if(m_Config->m_SvSpamprotection && pPlayer->m_LastChangeInfo && pPlayer->m_LastChangeInfo+Server()->TickSpeed()*5 > Server()->Tick())
+			if(m_Config->m_SvSpamprotection && pPlayer->m_LastChangeInfo && 50 * g_Config->SvNameChangeDelay > Server()->Tick())
 				return;
 
 			CNetMsg_Cl_ChangeInfo *pMsg = (CNetMsg_Cl_ChangeInfo *)pRawMsg;
@@ -1046,7 +1046,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			char aOldName[MAX_NAME_LENGTH];
 			str_copy(aOldName, Server()->ClientName(ClientID), sizeof(aOldName));
 			Server()->SetClientName(ClientID, pMsg->m_pName);
-			if(str_comp(aOldName, Server()->ClientName(ClientID)) != 0)
+			if(str_comp(aOldName, Server()->ClientName(ClientID)) != 0 && m_Config->m_SvAnnounceNameChange)
 			{
 				char aChatText[256];
 				str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientID));
