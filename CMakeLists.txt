@@ -294,6 +294,9 @@ find_package(Threads)
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
+# Add SQLite3 dependency
+find_package(SQLite3 REQUIRED)
+
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(CMAKE_OTOOL otool)
   find_program(DMG dmg)
@@ -340,6 +343,7 @@ endif()
 show_dependency_status("OpenSSL Crypto" CRYPTO)
 show_dependency_status("PythonInterp" PYTHONINTERP)
 show_dependency_status("Zlib" ZLIB)
+show_dependency_status("SQLite3" SQLITE3)
 
 if(NOT(PYTHONINTERP_FOUND))
   message(SEND_ERROR "You must install Python to compile Teeworlds")
@@ -734,7 +738,7 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS} CURL::libcurl)
+set(LIBS_SERVER ${LIBS} CURL::libcurl ${SQLITE3_LIBRARIES})
 
 # Target
 set(TARGET_SERVER ${SERVER_EXECUTABLE})
@@ -746,6 +750,7 @@ add_executable(${TARGET_SERVER}
   $<TARGET_OBJECTS:game-shared>
 )
 target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
+target_include_directories(${TARGET_SERVER} PRIVATE ${SQLITE3_INCLUDE_DIRS})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
 
