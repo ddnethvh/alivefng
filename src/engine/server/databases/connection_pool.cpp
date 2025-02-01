@@ -97,7 +97,7 @@ CSqlExecData::CSqlExecData(
 	m_pName("add sqlite server")
 {
 	m_Ptr.m_Sqlite.m_Mode = m;
-	str_copy(m_Ptr.m_Sqlite.m_FileName, aFileName);
+	str_copy(m_Ptr.m_Sqlite.m_FileName, aFileName, sizeof(m_Ptr.m_Sqlite.m_FileName));
 }
 CSqlExecData::CSqlExecData(CDbConnectionPool::Mode m,
 	const CMysqlConfig *pMysqlConfig) :
@@ -476,8 +476,8 @@ bool CDbConnectionPool::ExecSqlFunc(IDbConnection *pConnection, CSqlExecData *pD
 CDbConnectionPool::CDbConnectionPool()
 {
 	m_pShared = std::make_shared<CSharedData>();
-	m_pWorkerThread = thread_init(CWorker::Start, new CWorker(m_pShared, g_Config.m_DbgSql), "database worker thread");
-	m_pBackupThread = thread_init(CBackup::Start, new CBackup(m_pShared, g_Config.m_DbgSql), "database backup worker thread");
+	m_pWorkerThread = thread_init(CWorker::Start, new CWorker(m_pShared, 0), "database worker thread");
+	m_pBackupThread = thread_init(CBackup::Start, new CBackup(m_pShared, 0), "database backup worker thread");
 }
 
 CDbConnectionPool::~CDbConnectionPool()
