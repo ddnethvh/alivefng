@@ -57,8 +57,10 @@ public:
 	bool CreateFailsafeTables();
 
 private:
+	static const int MAX_PATH_LENGTH = 512;
+	
 	// copy of config vars
-	char m_aFilename[IO_MAX_PATH_LENGTH];
+	char m_aFilename[MAX_PATH_LENGTH];
 	bool m_Setup;
 
 	sqlite3 *m_pDb;
@@ -84,7 +86,7 @@ CSqliteConnection::CSqliteConnection(const char *pFilename, bool Setup) :
 	m_Done(true),
 	m_InUse(false)
 {
-	str_copy(m_aFilename, pFilename);
+	str_copy(m_aFilename, pFilename, sizeof(m_aFilename));
 }
 
 CSqliteConnection::~CSqliteConnection()
@@ -337,8 +339,10 @@ void CSqliteConnection::GetString(int Col, char *pBuffer, int BufferSize)
 
 int CSqliteConnection::GetBlob(int Col, unsigned char *pBuffer, int BufferSize)
 {
+	Col -= 1;
+
 	int Size = sqlite3_column_bytes(m_pStmt, Col - 1);
-	Size = minimum(Size, BufferSize);
+	Size = min(Size, BufferSize);
 	mem_copy(pBuffer, sqlite3_column_blob(m_pStmt, Col - 1), Size);
 	return Size;
 }
